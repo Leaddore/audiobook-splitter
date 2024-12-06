@@ -1,0 +1,8 @@
+model
+bigmodel
+target
+.classpath
+.project
+*.wav
+*.mp3
+*.prefs
