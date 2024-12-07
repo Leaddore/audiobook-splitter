@@ -15,7 +15,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-// TODO: Auto-generated Javadoc
 /**
  * The Class Main.
  */
@@ -45,9 +44,9 @@ public class Main {
 		if (cmd.hasOption("h")) {
 
 			LOGGER.warn("Help for Audiobook splitter:");
-			for (Option o : cmd.getOptions()) {
+			for (Option option : cmd.getOptions()) {
 
-				LOGGER.warn("Option {} Desc: {}", o.getOpt(), o.getDescription());
+				LOGGER.warn("Option {} Desc: {}", option.getOpt(), option.getDescription());
 
 			}
 			System.exit(0);
