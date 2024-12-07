@@ -1,80 +1,188 @@
 package com.leaddore.audiobook.splitter;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import javax.sound.sampled.UnsupportedAudioFileException;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class Main.
+ */
 public class Main {
 
+	/** The Constant BUFFER_SIZE. */
 	private static final int BUFFER_SIZE = 8192;
 
+	/** The ffmpeg path. */
 	private static String ffmpegPath = "";
 
+	/** The Constant FFMPEGNAME. */
 	private static final String FFMPEGNAME = "ffmpeg";
 
-	public static void main(String[] args) throws IOException, UnsupportedAudioFileException {
+	/** The Constant LOGGER. */
+	private static final Logger LOGGER = LogManager.getLogger(Main.class);
 
-		// LibVosk.setLogLevel(LogLevel.DEBUG);
+	/**
+	 * The main method.
+	 *
+	 * @param args the arguments
+	 */
+	public static void main(String... args) {
 
-		String osName = System.getProperty("os.name");
+		CommandLine cmd = createCommandLineArgs(args);
 
-		if (osName.toLowerCase().contains("win")) {
-			Map<String, String> envMap = System.getenv();
-			for (Map.Entry<String, String> entries : envMap.entrySet()) {
+		if (cmd.hasOption("h")) {
 
-				if ("path".equalsIgnoreCase(entries.getKey())) {
+			LOGGER.warn("Help for Audiobook splitter:");
+			for (Option o : cmd.getOptions()) {
 
-					List<String> envList = Arrays.asList(entries.getValue().split(";"));
-
-					for (String entry : envList) {
-						if (entry.contains(getFfmpegname())) {
-
-							setFfmpegPath(entry);
-
-							System.out.println(getFfmpegPath());
-							return;
-
-						}
-					}
-
-				}
-			}
-		} else if ((osName.contains("nix") || osName.contains("nux") || osName.contains("aix"))) {
-
-			List<String> pathList = Arrays.asList(System.getenv("PATH").split(":"));
-
-			for (String path : pathList) {
-
-				File file = new File(path, FFMPEGNAME);
-
-				if (Files.isExecutable(file.toPath())) {
-					System.out.println("Found " + FFMPEGNAME + " at: " + file.getAbsolutePath());
-					return;
-				}
+				LOGGER.warn("Option {} Desc: {}", o.getOpt(), o.getDescription());
 
 			}
+			System.exit(0);
 
 		}
 
+		dealWithFfmpeg(cmd);
+
 	}
 
+	/**
+	 * Deal with ffmpeg.
+	 *
+	 * @param cmd the cmd
+	 */
+	private static void dealWithFfmpeg(CommandLine cmd) {
+		if (cmd.hasOption("f")) {
+			setFfmpegPath(cmd.getOptionValue("f"));
+			return;
+		}
+
+		String osName = System.getProperty("os.name").toLowerCase();
+
+		if (osName.contains("win")) {
+			handleWindowsEnvironment();
+		} else if (isUnixLike(osName)) {
+			handleUnixEnvironment();
+		}
+	}
+
+	/**
+	 * Handle windows environment.
+	 */
+	private static void handleWindowsEnvironment() {
+		Map<String, String> envMap = System.getenv();
+		for (Map.Entry<String, String> entry : envMap.entrySet()) {
+			if ("path".equalsIgnoreCase(entry.getKey())) {
+				findFfmpegInPath(entry.getValue(), ";");
+			}
+		}
+	}
+
+	/**
+	 * Handle unix environment.
+	 */
+	private static void handleUnixEnvironment() {
+		String path = System.getenv("PATH");
+		findFfmpegInPath(path, ":");
+	}
+
+	/**
+	 * Find ffmpeg in path.
+	 *
+	 * @param path      the path
+	 * @param delimiter the delimiter
+	 */
+	private static void findFfmpegInPath(String path, String delimiter) {
+		List<String> pathList = Arrays.asList(path.split(delimiter));
+		for (String entry : pathList) {
+			if (entry.contains(getFfmpegname()) || (new File(entry, getFfmpegname()).exists()
+					&& Files.isExecutable(new File(entry, getFfmpegname()).toPath()))) {
+				setFfmpegPath(entry);
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Checks if is unix like.
+	 *
+	 * @param osName the os name
+	 * @return true, if is unix like
+	 */
+	private static boolean isUnixLike(String osName) {
+		return osName.contains("nix") || osName.contains("nux") || osName.contains("aix");
+	}
+
+	/**
+	 * Creates the command line args.
+	 *
+	 * @param args the args
+	 * @return the command line
+	 */
+	private static CommandLine createCommandLineArgs(String... args) {
+
+		CommandLine cmd = null;
+
+		Options options = new Options();
+		options.addOption(new Option("f", "ffmpegFilePath", true, "File path the the ffmpeg installation"));
+		options.addOption(new Option("n", "audioFileName", true, "Name of the Audiofile to break into chapters"));
+		options.addOption(new Option("h", "help", false, "Show Help (this list)"));
+
+		CommandLineParser parser = new DefaultParser();
+
+		try {
+			cmd = parser.parse(options, args);
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+		return cmd;
+
+	}
+
+	/**
+	 * Gets the ffmpeg path.
+	 *
+	 * @return the ffmpeg path
+	 */
 	public static String getFfmpegPath() {
 		return ffmpegPath;
 	}
 
+	/**
+	 * Sets the ffmpeg path.
+	 *
+	 * @param ffmpegPath the new ffmpeg path
+	 */
 	public static void setFfmpegPath(String ffmpegPath) {
 		Main.ffmpegPath = ffmpegPath;
 	}
 
+	/**
+	 * Gets the buffer size.
+	 *
+	 * @return the buffer size
+	 */
 	public static int getBufferSize() {
 		return BUFFER_SIZE;
 	}
 
+	/**
+	 * Gets the ffmpegname.
+	 *
+	 * @return the ffmpegname
+	 */
 	public static String getFfmpegname() {
 		return FFMPEGNAME;
 	}
