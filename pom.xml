@@ -11,13 +11,6 @@
 		<mockito.version>5.14.2</mockito.version>
 		<junit.version>5.11.3</junit.version>
 	</properties>
-	<!-- Added repo for ffmpeg4j-->
-	<repositories>
-		<repository>
-			<id>jitpack.io</id>
-			<url>https://jitpack.io</url>
-		</repository>
-	</repositories>
 	<dependencies>
 		<!-- Logging dependencies-->
 		<dependency>
@@ -40,17 +33,6 @@
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
 			<version>20240303</version>
-		</dependency>
-		<!-- FFMPEG stuffs-->
-		<dependency>
-			<groupId>org.bytedeco</groupId>
-			<artifactId>javacv-platform</artifactId>
-			<version>1.5.5</version>
-		</dependency>
-		<dependency>
-			<groupId>org.bytedeco</groupId>
-			<artifactId>ffmpeg-platform</artifactId>
-			<version>4.3.2-1.5.5</version>
 		</dependency>
 		<!-- Handle those command line arguments-->
 		<dependency>
