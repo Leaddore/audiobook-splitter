@@ -15,6 +15,9 @@ import org.apache.commons.cli.ParseException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.leaddore.audiobook.splitter.audio.AudioTranscriber;
+import com.leaddore.audiobook.splitter.range.Range;
+
 /**
  * The Class Main.
  */
@@ -36,8 +39,9 @@ public class Main {
 	 * The main method.
 	 *
 	 * @param args the arguments
+	 * @throws Exception
 	 */
-	public static void main(String... args) {
+	public static void main(String... args) throws Exception {
 
 		CommandLine cmd = createCommandLineArgs(args);
 
@@ -54,6 +58,10 @@ public class Main {
 		}
 
 		dealWithFfmpeg(cmd);
+
+		AudioTranscriber transcribe = new AudioTranscriber(getFfmpegPath());
+
+		List<Range> timeCodes = transcribe.transcribe(getFfmpegPath());
 
 	}
 
