@@ -103,11 +103,6 @@ public class AudioTranscriber {
 
 					}
 
-					for (Range r : timeCodes) {
-						System.out.println(r.getStartTime());
-						System.out.println(r.getStopTime());
-					}
-
 				}
 
 			}
