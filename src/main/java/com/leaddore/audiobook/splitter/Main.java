@@ -29,6 +29,8 @@ public class Main {
 	/** The ffmpeg path. */
 	private static String ffmpegPath = "";
 
+	private static String audioBookPath = "";
+
 	/** The Constant FFMPEGNAME. */
 	private static final String FFMPEGNAME = "ffmpeg";
 
@@ -57,11 +59,17 @@ public class Main {
 
 		}
 
+		if (cmd.hasOption("n")) {
+
+			setAudioBookPath(cmd.getOptionValue("n"));
+
+		}
+
 		dealWithFfmpeg(cmd);
 
-		AudioTranscriber transcribe = new AudioTranscriber(getFfmpegPath());
+		AudioTranscriber transcribe = new AudioTranscriber(getFfmpegPath(), getAudioBookPath());
 
-		List<Range> timeCodes = transcribe.transcribe(getFfmpegPath());
+		List<Range> timeCodes = transcribe.transcribe();
 
 	}
 
@@ -116,7 +124,13 @@ public class Main {
 		for (String entry : pathList) {
 			if (entry.contains(getFfmpegname()) || (new File(entry, getFfmpegname()).exists()
 					&& Files.isExecutable(new File(entry, getFfmpegname()).toPath()))) {
-				setFfmpegPath(entry);
+
+				if (entry.endsWith(".exe") || entry.endsWith(FFMPEGNAME)) {
+					setFfmpegPath(entry);
+				} else {
+					setFfmpegPath(entry + "/" + FFMPEGNAME);
+				}
+
 				return;
 			}
 		}
@@ -144,7 +158,8 @@ public class Main {
 
 		Options options = new Options();
 		options.addOption(new Option("f", "ffmpegFilePath", true, "File path the the ffmpeg installation"));
-		options.addOption(new Option("n", "audioFileName", true, "Name of the Audiofile to break into chapters"));
+		options.addOption(new Option("n", "audioFileName", true,
+				"Name of the Audiofile to break into chapters with path if not located in the same directory."));
 		options.addOption(new Option("h", "help", false, "Show Help (this list)"));
 
 		CommandLineParser parser = new DefaultParser();
@@ -192,5 +207,13 @@ public class Main {
 	 */
 	public static String getFfmpegname() {
 		return FFMPEGNAME;
+	}
+
+	public static String getAudioBookPath() {
+		return audioBookPath;
+	}
+
+	public static void setAudioBookPath(String audioBookPath) {
+		Main.audioBookPath = audioBookPath;
 	}
 }
