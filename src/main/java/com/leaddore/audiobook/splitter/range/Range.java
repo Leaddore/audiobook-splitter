@@ -22,4 +22,14 @@ public class Range {
 		this.stopTime = stopTime;
 	}
 
+	@Override
+	public String toString() {
+
+		StringBuilder builder = new StringBuilder();
+
+		builder.append(getStartTime()).append(" - ").append(getStopTime());
+
+		return builder.toString();
+	}
+
 }
