@@ -2,6 +2,7 @@ package com.leaddore.audiobook.splitter;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.leaddore.audiobook.splitter.audio.AudioTranscriber;
 import com.leaddore.audiobook.splitter.range.Range;
+import com.leaddore.audiobook.splitter.splitbook.SplitBook;
+import com.leaddore.audiobook.utils.FileUtils;
 
 /**
  * The Class Main.
@@ -67,9 +70,18 @@ public class Main {
 
 		dealWithFfmpeg(cmd);
 
-		AudioTranscriber transcribe = new AudioTranscriber(getFfmpegPath(), getAudioBookPath());
+		List<Range> timeCodes;
+		if (!Files.exists(Paths.get(FileUtils.OUTPUT_FILE_NAME))) {
+			AudioTranscriber transcribe = new AudioTranscriber(getFfmpegPath(), getAudioBookPath());
+			timeCodes = transcribe.transcribe();
+			FileUtils.writeTimecodeFile(timeCodes);
+		} else {
+			timeCodes = FileUtils.readRangesFile();
+		}
 
-		List<Range> timeCodes = transcribe.transcribe();
+		SplitBook split = new SplitBook(timeCodes, audioBookPath, getFfmpegPath());
+
+		split.splitItUp();
 
 	}
 
