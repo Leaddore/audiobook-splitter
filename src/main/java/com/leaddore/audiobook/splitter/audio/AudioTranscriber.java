@@ -10,6 +10,9 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -70,15 +73,10 @@ public class AudioTranscriber {
 
 		}
 
-		float sampleRate = getWavSampleRate();
-
-		System.out.println(sampleRate);
-		System.out.println(waveName);
-
 		try (Model model = new Model("model");
 				InputStream ais = AudioSystem
 						.getAudioInputStream(new BufferedInputStream(new FileInputStream(waveName)));
-				Recognizer recognizer = new Recognizer(model, sampleRate)) {
+				Recognizer recognizer = new Recognizer(model, getWavSampleRate())) {
 
 			recognizer.setWords(true);
 
@@ -91,8 +89,6 @@ public class AudioTranscriber {
 					String result = recognizer.getFinalResult();
 
 					JSONObject jsonObject = new JSONObject(result);
-
-					System.out.println(result);
 
 					if (jsonObject.has("result")) {
 						JSONArray jsonArray = new JSONArray(jsonObject.getJSONArray("result"));
@@ -169,8 +165,8 @@ public class AudioTranscriber {
 	 */
 	private void convertToWav() {
 		String newWavName = fileName.split("\\.")[0] + ".wav";
-		String[] command = { ffmpegLocation, "-y", "-i", "\"" + audioBookLocation + "\"", "-c:a", "pcm_s16le", "-ar",
-				"22050", "-sample_fmt", "s16", "-b:a", "256k", "\"" + newWavName + "\"" };
+
+		List<String> command = createCommand(newWavName);
 
 		ProcessBuilder processBuilder = new ProcessBuilder(command);
 		processBuilder.redirectErrorStream(true);
@@ -181,17 +177,52 @@ public class AudioTranscriber {
 
 			BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
 			String line;
+			String duration = "";
+			String currentTime = "";
 
 			while ((line = br.readLine()) != null) {
 
-				System.out.println(line);
+				// TODO: Make a proper progress indicator for the conversion
 
 				if (line.contains("Duration:")) {
 					Scanner sc = new Scanner(line);
-					sc.useDelimiter(": ");
-					sc.next();
-					String duration = sc.next();
-					System.out.println("Duration: " + duration);
+
+					while (sc.hasNext()) {
+						String token = sc.next();
+
+						if ("Duration:".equals(token) && sc.hasNext()) {
+							duration = sc.next().replace(",", "");
+						}
+
+					}
+
+				} else if (line.contains("time=")) {
+
+					Scanner scanner = new Scanner(line);
+
+					while (scanner.hasNext()) {
+
+						String token = scanner.next();
+
+						if (token.startsWith("time=")) {
+							currentTime = token.substring(5);
+						}
+					}
+
+					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss.SS");
+					LocalTime startTime = LocalTime.parse(duration, formatter);
+					LocalTime endTime = LocalTime.parse(currentTime, formatter);
+					long startSeconds = (long) startTime.toSecondOfDay() + (startTime.getNano() / 1_000_000_000);
+					long endSeconds = (long) endTime.toSecondOfDay() + (endTime.getNano() / 1_000_000_000);
+
+					double percent = ((double) endSeconds / startSeconds) * 100;
+
+					DecimalFormat df = new DecimalFormat("#.00");
+
+					String formattedPercent = df.format(percent);
+
+					System.out.println("/r" + formattedPercent + " completed");
+
 				}
 
 			}
@@ -214,7 +245,29 @@ public class AudioTranscriber {
 		}
 	}
 
-	public static String convertToTimeFormat(BigDecimal bigDecimalSeconds) {
+	private List<String> createCommand(String newWavName) {
+
+		List<String> command = new ArrayList<>();
+
+		command.add(ffmpegLocation);
+		command.add("-y");
+		command.add("-i");
+		command.add("\"" + audioBookLocation + "\"");
+		command.add("-c:a");
+		command.add("pcm_s16le");
+		command.add("-ar");
+		command.add("22050");
+		command.add("-sample_fmt");
+		command.add("s16");
+		command.add("-b:a");
+		command.add("256k");
+		command.add("\"" + newWavName + "\"");
+
+		return command;
+
+	}
+
+	private String convertToTimeFormat(BigDecimal bigDecimalSeconds) {
 		int totalSeconds = bigDecimalSeconds.intValue();
 		int hours = totalSeconds / 3600;
 		int minutes = (totalSeconds % 3600) / 60;
