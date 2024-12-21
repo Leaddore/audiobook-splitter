@@ -33,20 +33,35 @@ import org.vosk.Recognizer;
 
 import com.leaddore.audiobook.splitter.range.Range;
 
+/**
+ * The Class AudioTranscriber.
+ */
 public class AudioTranscriber {
 
+	/** The Constant LOGGER. */
 	private static final Logger LOGGER = LogManager.getLogger(AudioTranscriber.class);
 
+	/** The Constant BUFFER_SIZE. */
 	private static final int BUFFER_SIZE = 8192;
 
+	/** The ffmpeg location. */
 	private String ffmpegLocation = "";
 
+	/** The audio book location. */
 	private String audioBookLocation = "";
 
+	/** The file name. */
 	private String fileName = "";
 
+	/** The wave name. */
 	private String waveName = "";
 
+	/**
+	 * Instantiates a new audio transcriber.
+	 *
+	 * @param ffmpegLocation    the ffmpeg location
+	 * @param audioBookLocation the audio book location
+	 */
 	public AudioTranscriber(String ffmpegLocation, String audioBookLocation) {
 		this.ffmpegLocation = ffmpegLocation;
 		this.audioBookLocation = audioBookLocation;
@@ -56,6 +71,16 @@ public class AudioTranscriber {
 		fileName = path.getFileName().toString();
 	}
 
+	/**
+	 * Transcribe.
+	 *
+	 * @return the list
+	 * 
+	 *         Returns a list of ranges of time codes from reading the audio book
+	 *         file.
+	 * 
+	 * @see {@link Range}
+	 */
 	public List<Range> transcribe() {
 
 		List<String> wordList = new ArrayList<>();
@@ -143,7 +168,9 @@ public class AudioTranscriber {
 	}
 
 	/**
-	 * 
+	 * Gets the wav sample rate.
+	 *
+	 * @return the wav sample rate
 	 */
 	private float getWavSampleRate() {
 		float sampleRate = 0;
@@ -160,8 +187,7 @@ public class AudioTranscriber {
 	}
 
 	/**
-	 * @throws IOException
-	 * @throws InterruptedException
+	 * Convert to wav.
 	 */
 	private void convertToWav() {
 		String newWavName = fileName.split("\\.")[0] + ".wav";
@@ -182,19 +208,18 @@ public class AudioTranscriber {
 
 			while ((line = br.readLine()) != null) {
 
-				// TODO: Make a proper progress indicator for the conversion
-
 				if (line.contains("Duration:")) {
-					Scanner sc = new Scanner(line);
+					Scanner scanner = new Scanner(line);
 
-					while (sc.hasNext()) {
-						String token = sc.next();
+					while (scanner.hasNext()) {
+						String token = scanner.next();
 
-						if ("Duration:".equals(token) && sc.hasNext()) {
-							duration = sc.next().replace(",", "");
+						if ("Duration:".equals(token) && scanner.hasNext()) {
+							duration = scanner.next().replace(",", "");
 						}
 
 					}
+					scanner.close();
 
 				} else if (line.contains("time=")) {
 
@@ -209,19 +234,9 @@ public class AudioTranscriber {
 						}
 					}
 
-					DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss.SS");
-					LocalTime startTime = LocalTime.parse(duration, formatter);
-					LocalTime endTime = LocalTime.parse(currentTime, formatter);
-					long startSeconds = (long) startTime.toSecondOfDay() + (startTime.getNano() / 1_000_000_000);
-					long endSeconds = (long) endTime.toSecondOfDay() + (endTime.getNano() / 1_000_000_000);
+					createPercentage(duration, currentTime);
 
-					double percent = ((double) endSeconds / startSeconds) * 100;
-
-					DecimalFormat df = new DecimalFormat("#.00");
-
-					String formattedPercent = df.format(percent);
-
-					System.out.println("/r" + formattedPercent + " completed");
+					scanner.close();
 
 				}
 
@@ -245,6 +260,35 @@ public class AudioTranscriber {
 		}
 	}
 
+	/**
+	 * Creates the percentage.
+	 *
+	 * @param duration    the duration
+	 * @param currentTime the current time
+	 */
+	private void createPercentage(String duration, String currentTime) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss.SS");
+		LocalTime startTime = LocalTime.parse(duration, formatter);
+		LocalTime endTime = LocalTime.parse(currentTime, formatter);
+		long startSeconds = (long) startTime.toSecondOfDay() + (startTime.getNano() / 1_000_000_000);
+		long endSeconds = (long) endTime.toSecondOfDay() + (endTime.getNano() / 1_000_000_000);
+
+		double percent = ((double) endSeconds / startSeconds) * 100;
+
+		DecimalFormat df = new DecimalFormat("#.00");
+
+		String formattedPercent = df.format(percent);
+
+		LOGGER.warn(new StringBuilder().append("/r").append(formattedPercent).append(" completed."));
+
+	}
+
+	/**
+	 * Creates the command.
+	 *
+	 * @param newWavName the new wav name
+	 * @return the list
+	 */
 	private List<String> createCommand(String newWavName) {
 
 		List<String> command = new ArrayList<>();
@@ -267,6 +311,12 @@ public class AudioTranscriber {
 
 	}
 
+	/**
+	 * Convert to time format.
+	 *
+	 * @param bigDecimalSeconds the big decimal seconds
+	 * @return the string
+	 */
 	private String convertToTimeFormat(BigDecimal bigDecimalSeconds) {
 		int totalSeconds = bigDecimalSeconds.intValue();
 		int hours = totalSeconds / 3600;
@@ -275,18 +325,38 @@ public class AudioTranscriber {
 		return String.format("%02d:%02d:%02d", hours, minutes, seconds - 1);
 	}
 
+	/**
+	 * Gets the file name.
+	 *
+	 * @return the file name
+	 */
 	public String getFileName() {
 		return fileName;
 	}
 
+	/**
+	 * Sets the file name.
+	 *
+	 * @param fileName the new file name
+	 */
 	public void setFileName(String fileName) {
 		this.fileName = fileName;
 	}
 
+	/**
+	 * Gets the wave name.
+	 *
+	 * @return the wave name
+	 */
 	public String getWaveName() {
 		return waveName;
 	}
 
+	/**
+	 * Sets the wave name.
+	 *
+	 * @param waveName the new wave name
+	 */
 	public void setWaveName(String waveName) {
 		this.waveName = waveName;
 	}
