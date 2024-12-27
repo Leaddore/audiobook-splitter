@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -56,6 +57,10 @@ public class AudioTranscriber {
 	/** The wave name. */
 	private String waveName = "";
 
+	private String bookName = "";
+
+	private String chapterNumber = "";
+
 	/**
 	 * Instantiates a new audio transcriber.
 	 *
@@ -86,7 +91,7 @@ public class AudioTranscriber {
 		List<String> wordList = new ArrayList<>();
 		List<Range> timeCodes = new ArrayList<>();
 
-		wordList.add("chapter");
+		wordList.addAll(generatePhrases(20));
 
 		LibVosk.setLogLevel(LogLevel.WARNINGS);
 
@@ -115,44 +120,50 @@ public class AudioTranscriber {
 
 					JSONObject jsonObject = new JSONObject(result);
 
-					if (jsonObject.has("result")) {
-						JSONArray jsonArray = new JSONArray(jsonObject.getJSONArray("result"));
+					if (wordList.contains(jsonObject.getString("text"))) {
 
-						for (int i = 0; i < jsonArray.length(); i++) {
+						if (jsonObject.getString("text").contains("book")) {
+							setBookName(jsonObject.getString("text"));
+						} else if (jsonObject.getString("text").contains("chapter")) {
+							setChapterNumber(jsonObject.getString("text"));
 
-							JSONObject obj = jsonArray.getJSONObject(i);
+							JSONArray jsonArray = new JSONArray(jsonObject.getJSONArray("result"));
 
-							if (wordList.contains(obj.getString("word"))) {
+							for (int i = 0; i < jsonArray.length(); i++) {
 
-								BigDecimal startTime = obj.getBigDecimal("start");
+								JSONObject obj = jsonArray.getJSONObject(i);
 
-								String convertedTime = convertToTimeFormat(startTime);
+								if ("chapter".equals(obj.getString("word"))) {
 
-								if (timeCodes.isEmpty()) {
+									BigDecimal startTime = obj.getBigDecimal("start");
 
-									Range range = new Range();
+									String convertedTime = convertToTimeFormat(startTime);
 
-									range.setStartTime("00:00:00");
-									range.setStopTime(convertedTime);
-									LOGGER.warn("New timecode added: {}", range);
-									timeCodes.add(range);
-									Range range2 = new Range();
-									range2.setStartTime(convertedTime);
-									timeCodes.add(range2);
+									if (timeCodes.isEmpty()) {
 
-								} else {
+										Range range = new Range();
 
-									timeCodes.get(timeCodes.size() - 1).setStopTime(convertedTime);
-									LOGGER.warn("New timecode added: {}", timeCodes.get(timeCodes.size() - 1));
-									Range range = new Range();
-									range.setStartTime(convertedTime);
-									timeCodes.add(range);
+										range.setStartTime("00:00:00");
+										range.setTitle(bookName + " " + chapterNumber);
+										timeCodes.add(range);
+
+									} else {
+
+										timeCodes.get(timeCodes.size() - 1).setStopTime(convertedTime);
+										LOGGER.warn("New timecode added: {}", timeCodes.get(timeCodes.size() - 1));
+										Range range = new Range();
+										range.setStartTime(convertedTime);
+										range.setTitle(bookName + " " + chapterNumber);
+										timeCodes.add(range);
+
+									}
 
 								}
 
 							}
 
 						}
+
 					}
 
 				}
@@ -165,6 +176,40 @@ public class AudioTranscriber {
 			e1.printStackTrace();
 		}
 		return timeCodes;
+	}
+
+	private void writeToFile(String result) {
+
+		try (FileWriter writer = new FileWriter(new File("test.txt"), true)) {
+
+			writer.write(result);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	private List<String> generatePhrases(int maxChapters) {
+		List<String> phrases = new ArrayList<>();
+		for (int i = 1; i <= maxChapters; i++) {
+			phrases.add("chapter " + numberToWords(i));
+			phrases.add("book " + numberToWords(i));
+		}
+		return phrases;
+	}
+
+	private static String numberToWords(int number) {
+		String[] units = { "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven",
+				"twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen" };
+		String[] tens = { "", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety" };
+		if (number < 20) {
+			return units[number];
+		} else if (number < 100) {
+			return tens[number / 10] + (number % 10 != 0 ? " " + units[number % 10] : "");
+		} else {
+			return "one hundred";
+		}
 	}
 
 	/**
@@ -207,6 +252,7 @@ public class AudioTranscriber {
 			String currentTime = "";
 
 			while ((line = br.readLine()) != null) {
+				System.out.println(line);
 
 				if (line.contains("Duration:")) {
 					Scanner scanner = new Scanner(line);
@@ -254,6 +300,8 @@ public class AudioTranscriber {
 		}
 		if (exitCode == 0) {
 			LOGGER.warn("Conversion successful!.");
+			LOGGER.warn(
+					"Please wait while I generate the timecodes for this audio book, this can take a while as I am reading the book looking for the chapters.");
 			setWaveName(newWavName);
 		} else {
 			LOGGER.warn("Conversion failed with exit code: {}", exitCode);
@@ -279,7 +327,7 @@ public class AudioTranscriber {
 
 		String formattedPercent = df.format(percent);
 
-		LOGGER.warn(new StringBuilder().append("/r").append(formattedPercent).append(" completed."));
+		LOGGER.warn(new StringBuilder().append(formattedPercent).append("% completed."));
 
 	}
 
@@ -296,7 +344,7 @@ public class AudioTranscriber {
 		command.add(ffmpegLocation);
 		command.add("-y");
 		command.add("-i");
-		command.add("\"" + audioBookLocation + "\"");
+		command.add(audioBookLocation);
 		command.add("-c:a");
 		command.add("pcm_s16le");
 		command.add("-ar");
@@ -305,7 +353,7 @@ public class AudioTranscriber {
 		command.add("s16");
 		command.add("-b:a");
 		command.add("256k");
-		command.add("\"" + newWavName + "\"");
+		command.add(newWavName);
 
 		return command;
 
@@ -359,6 +407,22 @@ public class AudioTranscriber {
 	 */
 	public void setWaveName(String waveName) {
 		this.waveName = waveName;
+	}
+
+	public String getBookName() {
+		return bookName;
+	}
+
+	public void setBookName(String bookName) {
+		this.bookName = bookName;
+	}
+
+	public String getChapterNumber() {
+		return chapterNumber;
+	}
+
+	public void setChapterNumber(String chapterNumber) {
+		this.chapterNumber = chapterNumber;
 	}
 
 }
