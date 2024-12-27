@@ -44,7 +44,8 @@ public final class FileUtils {
 
 		StringBuilder sb = new StringBuilder();
 
-		ranges.stream().forEach(s -> sb.append(s.getStartTime()).append("-").append(s.getStopTime()).append("\n"));
+		ranges.stream().forEach(s -> sb.append(s.getStartTime()).append("-").append(s.getStopTime()).append("-")
+				.append(s.getTitle()).append("\n"));
 
 		try (BufferedWriter writer = new BufferedWriter(new FileWriter(OUTPUT_FILE_NAME))) {
 
@@ -74,6 +75,7 @@ public final class FileUtils {
 				Range r = new Range();
 				r.setStartTime(fields[0]);
 				r.setStopTime(fields[1]);
+				r.setTitle(fields[2]);
 				return r;
 			}).collect(Collectors.toList());
 
