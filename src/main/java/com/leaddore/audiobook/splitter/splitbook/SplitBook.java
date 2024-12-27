@@ -1,6 +1,8 @@
 package com.leaddore.audiobook.splitter.splitbook;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,9 +91,18 @@ public class SplitBook {
 
 		try {
 			Process process = pb.start();
+
+			BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+			String line;
+
+			while ((line = br.readLine()) != null) {
+				System.out.println(line);
+			}
+
 			process.waitFor();
 
-			LOGGER.warn("Segment Created: {}", audioBookPath.split("\\.")[0] + i + ".mp3");
+			LOGGER.warn("Segment Created: {}", audioBookPath + " " + timeRange.getTitle() + ".mp3");
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -116,11 +127,13 @@ public class SplitBook {
 		command.add(audioBookPath);
 		command.add("-ss");
 		command.add(timeRange.getStartTime());
-		command.add("-to");
-		command.add(timeRange.getStopTime());
+		if (!"null".equals(timeRange.getStopTime())) {
+			command.add("-to");
+			command.add(timeRange.getStopTime());
+		}
 		command.add("-c");
 		command.add("copy");
-		command.add(audioBookPath.split("\\.")[0] + i + ".mp3");
+		command.add(audioBookPath + timeRange.getTitle() + ".mp3");
 
 		return command;
 	}
