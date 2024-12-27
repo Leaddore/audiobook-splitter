@@ -169,7 +169,8 @@ public class Main {
 		CommandLine cmd = null;
 
 		Options options = new Options();
-		options.addOption(new Option("f", "ffmpegFilePath", true, "File path the the ffmpeg installation"));
+		options.addOption(new Option("f", "ffmpegFilePath", true,
+				"File path the the ffmpeg installation, this should not usually be needed since it should find ffmpeg on its own."));
 		options.addOption(new Option("n", "audioFileName", true,
 				"Name of the Audiofile to break into chapters with path if not located in the same directory."));
 		options.addOption(new Option("h", "help", false, "Show Help (this list)"));
