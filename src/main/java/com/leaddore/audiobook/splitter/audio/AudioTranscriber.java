@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -33,6 +32,7 @@ import org.vosk.Model;
 import org.vosk.Recognizer;
 
 import com.leaddore.audiobook.splitter.range.Range;
+import com.leaddore.audiobook.utils.FileUtils;
 
 /**
  * The Class AudioTranscriber.
@@ -57,8 +57,10 @@ public class AudioTranscriber {
 	/** The wave name. */
 	private String waveName = "";
 
+	/** The book name. */
 	private String bookName = "";
 
+	/** The chapter number. */
 	private String chapterNumber = "";
 
 	/**
@@ -178,18 +180,12 @@ public class AudioTranscriber {
 		return timeCodes;
 	}
 
-	private void writeToFile(String result) {
-
-		try (FileWriter writer = new FileWriter(new File("test.txt"), true)) {
-
-			writer.write(result);
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-	}
-
+	/**
+	 * Generate phrases.
+	 *
+	 * @param maxChapters the max chapters
+	 * @return the list
+	 */
 	private List<String> generatePhrases(int maxChapters) {
 		List<String> phrases = new ArrayList<>();
 		for (int i = 1; i <= maxChapters; i++) {
@@ -199,6 +195,12 @@ public class AudioTranscriber {
 		return phrases;
 	}
 
+	/**
+	 * Number to words.
+	 *
+	 * @param number the number
+	 * @return the string
+	 */
 	private static String numberToWords(int number) {
 		String[] units = { "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven",
 				"twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen" };
@@ -252,7 +254,7 @@ public class AudioTranscriber {
 			String currentTime = "";
 
 			while ((line = br.readLine()) != null) {
-				System.out.println(line);
+				FileUtils.writeToFfmpegLog(line);
 
 				if (line.contains("Duration:")) {
 					Scanner scanner = new Scanner(line);
@@ -409,18 +411,38 @@ public class AudioTranscriber {
 		this.waveName = waveName;
 	}
 
+	/**
+	 * Gets the book name.
+	 *
+	 * @return the book name
+	 */
 	public String getBookName() {
 		return bookName;
 	}
 
+	/**
+	 * Sets the book name.
+	 *
+	 * @param bookName the new book name
+	 */
 	public void setBookName(String bookName) {
 		this.bookName = bookName;
 	}
 
+	/**
+	 * Gets the chapter number.
+	 *
+	 * @return the chapter number
+	 */
 	public String getChapterNumber() {
 		return chapterNumber;
 	}
 
+	/**
+	 * Sets the chapter number.
+	 *
+	 * @param chapterNumber the new chapter number
+	 */
 	public void setChapterNumber(String chapterNumber) {
 		this.chapterNumber = chapterNumber;
 	}

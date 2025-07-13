@@ -26,12 +26,27 @@ public final class FileUtils {
 	/** The Constant OUTPUT_FILE_NAME. */
 	public static final String OUTPUT_FILE_NAME = "timecodes";
 
+	public static final String FFMPEG_LOG_NAME = "ffmpeg.log";
+
 	/**
 	 * Instantiates a new file utils.
 	 */
 	private FileUtils() {
 
 		// Static class, no need for constructing.
+
+	}
+
+	public static final void writeToFfmpegLog(String logLine) {
+
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(FFMPEG_LOG_NAME, true))) {
+
+			writer.write(logLine);
+			writer.write("\n\r");
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 	}
 

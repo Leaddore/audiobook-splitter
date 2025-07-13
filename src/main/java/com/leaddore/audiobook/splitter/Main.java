@@ -79,7 +79,7 @@ public class Main {
 			timeCodes = FileUtils.readRangesFile();
 		}
 
-		SplitBook split = new SplitBook(timeCodes, audioBookPath, getFfmpegPath());
+		SplitBook split = new SplitBook(FileUtils.readRangesFile(), audioBookPath, getFfmpegPath());
 
 		split.splitItUp();
 

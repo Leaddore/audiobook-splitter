@@ -10,6 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.leaddore.audiobook.splitter.range.Range;
+import com.leaddore.audiobook.utils.FileUtils;
 
 /**
  * The Class SplitBook.
@@ -85,6 +86,7 @@ public class SplitBook {
 	private void splitMp3(Range timeRange, int i) {
 
 		List<String> command = generateCommand(timeRange, i);
+		LOGGER.warn("Sending command to ffmpeg: {}", command);
 
 		ProcessBuilder pb = new ProcessBuilder(command);
 		pb.redirectErrorStream(true);
@@ -97,7 +99,8 @@ public class SplitBook {
 			String line;
 
 			while ((line = br.readLine()) != null) {
-				System.out.println(line);
+
+				FileUtils.writeToFfmpegLog(line);
 			}
 
 			process.waitFor();
@@ -121,13 +124,17 @@ public class SplitBook {
 	 */
 	private List<String> generateCommand(Range timeRange, int i) {
 
+		LOGGER.warn(timeRange.getStartTime());
+		LOGGER.warn(timeRange.getStopTime());
+		LOGGER.warn(timeRange.getTitle());
+
 		List<String> command = new ArrayList<>();
 		command.add(ffmpegPath);
 		command.add("-i");
 		command.add(audioBookPath);
 		command.add("-ss");
 		command.add(timeRange.getStartTime());
-		if (!"null".equals(timeRange.getStopTime())) {
+		if ((!"null".equals(timeRange.getStopTime())) || null == timeRange.getStopTime()) {
 			command.add("-to");
 			command.add(timeRange.getStopTime());
 		}
